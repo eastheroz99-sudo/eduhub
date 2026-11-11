@@ -10,6 +10,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "users")
@@ -22,7 +24,7 @@ public class User {
 	@Column(nullable = false, unique = true, length = 100)
 	private String email;
 
-	/** BCrypt로 암호화된 값만 저장한다 (NFR-01). */
+	/** BCrypt로 암호화된 값만 저장한다 (NFR-03). */
 	@Column(nullable = false)
 	private String password;
 
@@ -30,10 +32,11 @@ public class User {
 	private String name;
 
 	@Enumerated(EnumType.STRING)
+	@JdbcTypeCode(SqlTypes.VARCHAR)
 	@Column(nullable = false, length = 20)
 	private Role role;
 
-	/** FR-08: 관리자가 비활성화하면 false. 삭제와 다르다. */
+	/** 비활성 계정은 로그인할 수 없다. 삭제와 다르다. */
 	@Column(nullable = false)
 	private boolean active;
 

@@ -3,7 +3,7 @@ package com.eduhub.global.error;
 import java.time.Instant;
 
 /**
- * 모든 오류 응답의 공통 형식: {code, message, timestamp} (NFR-03).
+ * 모든 오류 응답의 공통 형식: {code, message, timestamp}.
  */
 public record ErrorResponse(String code, String message, Instant timestamp) {
 

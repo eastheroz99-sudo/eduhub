@@ -1,23 +1,27 @@
 package com.eduhub.course.domain;
 
-import java.time.LocalDate;
-
-import com.eduhub.user.domain.User;
+import com.eduhub.global.error.BusinessException;
+import com.eduhub.global.error.ErrorCode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
+/**
+ * 사내 교육과정. 일정·장소·정원은 회차(CourseSession)에 있다.
+ */
 @Entity
-@Table(name = "courses", indexes = @Index(name = "idx_course_title", columnList = "title")) // D-05, NFR-05
+@Table(name = "course", indexes = {
+		@Index(name = "idx_course_title", columnList = "title"),
+		@Index(name = "idx_course_category", columnList = "category")
+})
 public class Course {
 
 	@Id
@@ -30,40 +34,45 @@ public class Course {
 	@Column(length = 1000)
 	private String description;
 
-	@ManyToOne(fetch = FetchType.LAZY, optional = false)
-	@JoinColumn(name = "instructor_id", nullable = false)
-	private User instructor;
-
-	/** FR-07: 최대 수강 인원 */
-	@Column(nullable = false)
-	private int capacity;
-
-	/** D-02: 이 날짜 전까지만 수강 취소 가능 */
-	@Column(nullable = false)
-	private LocalDate startDate;
+	/** 분류 (FR-01 검색 조건, D-18) */
+	@Column(nullable = false, length = 50)
+	private String category;
 
 	@Enumerated(EnumType.STRING)
+	@JdbcTypeCode(SqlTypes.VARCHAR)
 	@Column(nullable = false, length = 20)
 	private CourseStatus status;
 
 	protected Course() {
 	}
 
-	private Course(String title, String description, User instructor, int capacity, LocalDate startDate) {
+	private Course(String title, String description, String category) {
 		this.title = title;
 		this.description = description;
-		this.instructor = instructor;
-		this.capacity = capacity;
-		this.startDate = startDate;
-		this.status = CourseStatus.RECRUITING;
+		this.category = category;
+		this.status = CourseStatus.OPEN;
 	}
 
-	public static Course create(String title, String description, User instructor, int capacity, LocalDate startDate) {
-		return new Course(title, description, instructor, capacity, startDate);
+	public static Course create(String title, String description, String category) {
+		return new Course(title, description, category);
 	}
 
+	public void update(String title, String description, String category) {
+		checkOpen();
+		this.title = title;
+		this.description = description;
+		this.category = category;
+	}
+
+	/** FR-03: 종료. 회차 종료는 서비스에서 함께 처리한다. */
 	public void close() {
 		this.status = CourseStatus.CLOSED;
+	}
+
+	public void checkOpen() {
+		if (status == CourseStatus.CLOSED) {
+			throw new BusinessException(ErrorCode.COURSE_CLOSED);
+		}
 	}
 
 	public Long getId() {
@@ -78,16 +87,8 @@ public class Course {
 		return description;
 	}
 
-	public User getInstructor() {
-		return instructor;
-	}
-
-	public int getCapacity() {
-		return capacity;
-	}
-
-	public LocalDate getStartDate() {
-		return startDate;
+	public String getCategory() {
+		return category;
 	}
 
 	public CourseStatus getStatus() {

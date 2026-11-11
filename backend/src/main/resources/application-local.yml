@@ -1,12 +1,10 @@
-# 개발용: H2 메모리 DB, Swagger UI 켬 (D-07)
+# 개발용: H2 메모리 DB(MySQL 모드) + Flyway, Swagger UI 켬 (D-07, D-20)
 spring:
   datasource:
-    url: jdbc:h2:mem:eduhub;MODE=MySQL
+    url: jdbc:h2:mem:eduhub;MODE=MySQL;DATABASE_TO_LOWER=TRUE
     username: sa
     password:
   jpa:
-    hibernate:
-      ddl-auto: create-drop
     show-sql: true
 
 springdoc:
@@ -15,8 +13,13 @@ springdoc:
   swagger-ui:
     enabled: true
 
-# 로컬 초기 관리자 (D-04). 환경 변수가 없으면 로컬 전용 기본값을 쓴다.
+# 로컬 초기 계정 (D-04)과 JWT 키. 환경 변수가 없으면 로컬 전용 기본값을 쓴다.
 eduhub:
   admin:
     email: ${ADMIN_EMAIL:admin@eduhub.local}
     password: ${ADMIN_PASSWORD:local-admin-only}
+  employee:
+    email: ${EMPLOYEE_EMAIL:employee@eduhub.local}
+    password: ${EMPLOYEE_PASSWORD:local-employee-only}
+  jwt:
+    secret: ${JWT_SECRET:local-only-jwt-secret-do-not-use-elsewhere}

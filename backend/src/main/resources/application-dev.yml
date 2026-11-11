@@ -1,0 +1,13 @@
+# 개발용: docker-compose의 MySQL 사용 (D-23). 접속 정보와 JWT 키는 루트 .env에서 읽는다.
+# 실행 (backend/에서): ./gradlew bootRun --args='--spring.profiles.active=dev'
+spring:
+  config:
+    import: optional:file:../.env[.properties]
+  datasource:
+    url: jdbc:mysql://localhost:${MYSQL_PORT:3306}/${MYSQL_DATABASE}
+    username: root   # 개발용은 root 계정 (D-13)
+    password: ${MYSQL_ROOT_PASSWORD}
+
+eduhub:
+  jwt:
+    secret: ${JWT_SECRET}

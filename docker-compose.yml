@@ -1,0 +1,23 @@
+# 개발용 MySQL. 접속 정보는 루트의 .env에서 읽는다 (.env.example 참고).
+# 실행: docker compose up -d
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: eduhub-mysql
+    environment:
+      # 개발용으로 root 계정을 쓴다. MySQL 이미지는 MYSQL_USER=root를 허용하지 않으므로 root 비밀번호만 지정한다.
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      TZ: Asia/Seoul
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - eduhub-mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  eduhub-mysql-data:

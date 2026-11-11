@@ -3,21 +3,21 @@ package com.eduhub.course.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 import com.eduhub.course.domain.Course;
+import com.eduhub.course.domain.CourseSession;
+import com.eduhub.course.dto.CourseDetailResponse;
 import com.eduhub.course.dto.CourseResponse;
 import com.eduhub.course.repository.CourseRepository;
+import com.eduhub.course.repository.CourseSessionRepository;
 import com.eduhub.global.error.BusinessException;
 import com.eduhub.global.error.ErrorCode;
-import com.eduhub.user.domain.Role;
-import com.eduhub.user.domain.User;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -27,6 +27,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
 @ExtendWith(MockitoExtension.class)
 class CourseServiceTest {
@@ -34,38 +35,43 @@ class CourseServiceTest {
 	@Mock
 	CourseRepository courseRepository;
 
+	@Mock
+	CourseSessionRepository courseSessionRepository;
+
 	@InjectMocks
 	CourseService courseService;
 
-	private final User instructor = User.create("t@eduhub.local", "encoded", "김강사", Role.INSTRUCTOR);
-	private final Course course = Course.create("자바 기초", "입문", instructor, 30, LocalDate.now().plusDays(7));
+	private final Course course = Course.create("자바 기초", "입문", "개발");
 
 	@Test
-	void 검색어가_없으면_전체_목록을_페이지로_조회한다() {
+	@SuppressWarnings("unchecked")
+	void 목록은_검색_조건으로_페이지_조회한다() {
 		Pageable pageable = PageRequest.of(0, 10);
-		given(courseRepository.findAll(pageable)).willReturn(new PageImpl<>(List.of(course), pageable, 1));
-
-		Page<CourseResponse> result = courseService.getCourses("  ", pageable);
-
-		assertThat(result.getTotalElements()).isEqualTo(1);
-		assertThat(result.getContent().get(0).instructorName()).isEqualTo("김강사");
-		verify(courseRepository, never())
-				.findByTitleContainingOrInstructorNameContaining(any(), any(), any());
-	}
-
-	@Test
-	void 검색어가_있으면_제목과_강사_이름으로_검색한다() {
-		Pageable pageable = PageRequest.of(0, 10);
-		given(courseRepository.findByTitleContainingOrInstructorNameContaining("자바", "자바", pageable))
+		given(courseRepository.findAll(any(Specification.class), eq(pageable)))
 				.willReturn(new PageImpl<>(List.of(course), pageable, 1));
 
-		Page<CourseResponse> result = courseService.getCourses(" 자바 ", pageable);
+		Page<CourseResponse> result = courseService.getCourses("자바", "개발", pageable);
 
-		assertThat(result.getContent()).extracting(CourseResponse::title).containsExactly("자바 기초");
+		assertThat(result.getTotalElements()).isEqualTo(1);
+		assertThat(result.getContent().get(0).category()).isEqualTo("개발");
 	}
 
 	@Test
-	void 없는_강의를_조회하면_COURSE_NOT_FOUND_예외가_난다() {
+	void 상세는_회차와_남은_자리를_함께_돌려준다() {
+		LocalDateTime start = LocalDateTime.of(2026, 12, 1, 9, 0);
+		CourseSession session = CourseSession.create(course, 1, start, start.plusHours(8), "본사 3층", 30);
+		given(courseRepository.findById(1L)).willReturn(Optional.of(course));
+		given(courseSessionRepository.findByCourseIdOrderBySessionNoAsc(1L)).willReturn(List.of(session));
+
+		CourseDetailResponse result = courseService.getCourse(1L);
+
+		assertThat(result.sessions()).hasSize(1);
+		assertThat(result.sessions().get(0).location()).isEqualTo("본사 3층");
+		assertThat(result.sessions().get(0).remainingSeats()).isEqualTo(30);
+	}
+
+	@Test
+	void 없는_과정을_조회하면_COURSE_NOT_FOUND_예외가_난다() {
 		given(courseRepository.findById(999L)).willReturn(Optional.empty());
 
 		assertThatThrownBy(() -> courseService.getCourse(999L))

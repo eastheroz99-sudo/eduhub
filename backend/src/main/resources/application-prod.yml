@@ -1,12 +1,9 @@
-# 운영용: 모든 비밀 값은 환경 변수로 주입 (NFR-04). Swagger UI 끔 (D-07)
+# 운영용: 모든 비밀 값은 환경 변수로 주입 (NFR-03, NFR-06). Swagger UI 끔 (D-07)
 spring:
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
-  jpa:
-    hibernate:
-      ddl-auto: validate
 
 springdoc:
   api-docs:
@@ -18,3 +15,5 @@ eduhub:
   admin:
     email: ${ADMIN_EMAIL}
     password: ${ADMIN_PASSWORD}
+  jwt:
+    secret: ${JWT_SECRET}
